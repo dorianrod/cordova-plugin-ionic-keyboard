@@ -27,6 +27,7 @@ typedef enum : NSUInteger {
     ResizeNative,
     ResizeBody,
     ResizeIonic,
+    ResizeCustom
 } ResizePolicy;
 
 #ifndef __CORDOVA_3_2_0
@@ -70,6 +71,8 @@ NSTimer *hideTimer;
         if (resizeMode) {
             if ([resizeMode isEqualToString:@"ionic"]) {
                 self.keyboardResizes = ResizeIonic;
+            } else if ([resizeMode isEqualToString:@"custom"]) {
+                self.keyboardResizes = ResizeCustom;
             } else if ([resizeMode isEqualToString:@"body"]) {
                 self.keyboardResizes = ResizeBody;
             }
@@ -202,18 +205,28 @@ NSTimer *hideTimer;
     // NOTE: to handle split screen correctly, the application's window bounds must be used as opposed to the screen's bounds.
     CGRect f = [[[[UIApplication sharedApplication] delegate] window] bounds];
     CGRect wf = self.webView.frame;
+    
+    
+    
     switch (self.keyboardResizes) {
         case ResizeBody:
         {
-            NSString *js = [NSString stringWithFormat:@"Keyboard.fireOnResize(%d, %d, document.body);",
+            NSString *js = [NSString stringWithFormat:@"Keyboard.fireOnResize(%d, %d, window.parent.document.body);",
                             _paddingBottom, (int)f.size.height];
             [self.commandDelegate evalJs:js];
             break;
         }
         case ResizeIonic:
         {
-            NSString *js = [NSString stringWithFormat:@"Keyboard.fireOnResize(%d, %d, document.querySelector('ion-app'));",
+            NSString *js = [NSString stringWithFormat:@"Keyboard.fireOnResize(%d, %d, window.parent.document.querySelector('ion-app'));",
                             _paddingBottom, (int)f.size.height];
+            [self.commandDelegate evalJs:js];
+            break;
+        }
+        case ResizeCustom:
+        {
+            NSString *js = [NSString stringWithFormat:@"Keyboard.fireOnResize(%d, %d, window.parent.document.querySelector('.keyboard-resizable'));",
+                            _paddingBottom, (int)f.size.height - (int) statusBarHeight];
             [self.commandDelegate evalJs:js];
             break;
         }
@@ -294,6 +307,8 @@ static IMP WKOriginalImp;
         self.keyboardResizes = ResizeIonic;
     } else if ([mode isEqualToString:@"body"]) {
         self.keyboardResizes = ResizeBody;
+    } else if ([mode isEqualToString:@"custom"]) {
+        self.keyboardResizes = ResizeCustom;
     } else if ([mode isEqualToString:@"native"]) {
         self.keyboardResizes = ResizeNative;
     } else {

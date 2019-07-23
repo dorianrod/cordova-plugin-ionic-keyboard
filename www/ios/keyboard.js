@@ -26,7 +26,9 @@ var argscheck = require('cordova/argscheck'),
 var Keyboard = function () {};
 
 Keyboard.fireOnShow = function (height) {
+    Keyboard.setVariableState("open");
     Keyboard.isVisible = true;
+
     cordova.fireWindowEvent('keyboardDidShow', {
         'keyboardHeight': height
     });
@@ -39,6 +41,8 @@ Keyboard.fireOnShow = function (height) {
 };
 
 Keyboard.fireOnHide = function () {
+    Keyboard.setVariableState("close");
+
     Keyboard.isVisible = false;
     cordova.fireWindowEvent('keyboardDidHide');
 
@@ -48,23 +52,36 @@ Keyboard.fireOnHide = function () {
 };
 
 Keyboard.fireOnHiding = function () {
+    Keyboard.setVariableState("closing");
+
     cordova.fireWindowEvent('keyboardWillHide');
 };
 
 Keyboard.fireOnShowing = function (height) {
+    Keyboard.setVariableState("opening");
+
     cordova.fireWindowEvent('keyboardWillShow', {
         'keyboardHeight': height
     });
 };
 
+Keyboard.setVariableState = function(s) {
+    var html = window.parent.document.documentElement;
+    html.style.setProperty('--kb-keyboard-open', s == 'open' ? 1 : 0);
+    html.style.setProperty('--kb-keyboard-close', s == 'close' ? 1 : 0);
+    html.style.setProperty('--kb-keyboard-opening', s == 'opening' ? 1 : 0);
+    html.style.setProperty('--kb-keyboard-closing', s == 'closing' ? 1 : 0);
+}
+
 Keyboard.fireOnResize = function (height, screenHeight, ele) {
-    if (!ele) {
-        return;
-    }
-    if (height === 0) {
-        ele.style.height = null;
-    } else {
-        ele.style.height = (screenHeight - height) + 'px';
+    var spaceAvailable = (height === 0) ? null : (screenHeight - height) + 'px';
+    
+    var html = window.parent.document.documentElement;
+    html.style.setProperty('--kb-space-available', spaceAvailable);
+    html.style.setProperty('--kb-toolbar-bottom', height === 0 ? null : height + 'px');
+
+    if (ele) {
+        ele.style.height = spaceAvailable;
     }
 };
 
